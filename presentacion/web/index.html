@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f8f7f3">
+    <title>Cocina de casa | Recetas</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="/" aria-label="Cocina de casa, inicio">
+          <span class="brand-mark" aria-hidden="true">✳</span>
+          <span>Cocina<span class="brand-light"> de casa</span></span>
+        </a>
+
+        <div class="nav-label">MENÚ</div>
+        <nav class="main-nav" aria-label="Navegación principal">
+          <button class="nav-link active" data-view="explorar"><span class="nav-icon">⌂</span> Explorar recetas</button>
+          <button class="nav-link" data-view="favoritas"><span class="nav-icon">♡</span> Mis favoritas <span id="favorite-count" class="nav-count">0</span></button>
+        </nav>
+
+        <div class="nav-label category-label">CATEGORÍAS</div>
+        <nav class="category-nav" aria-label="Categorías de recetas">
+          <button class="category-link active" data-category="Todas"><span class="category-dot dot-all"></span> Todas las recetas</button>
+          <button class="category-link" data-category="Plato principal"><span class="category-dot dot-main"></span> Platos principales</button>
+          <button class="category-link" data-category="Sopa"><span class="category-dot dot-soup"></span> Sopas y caldos</button>
+          <button class="category-link" data-category="Postre"><span class="category-dot dot-dessert"></span> Postres</button>
+          <button class="category-link" data-category="Entrada"><span class="category-dot dot-starter"></span> Entradas</button>
+        </nav>
+
+        <div class="sidebar-card">
+          <span class="sidebar-card-icon">✦</span>
+          <strong>Un poco de inspiración</strong>
+          <p>Las mejores recetas se comparten alrededor de la mesa.</p>
+          <button id="sidebar-add" class="text-button">Crear una receta <span aria-hidden="true">→</span></button>
+        </div>
+
+        <div class="profile">
+          <div class="avatar">VC</div>
+          <div><strong>Valentina</strong><span>Mi cocina</span></div>
+          <span class="profile-more" aria-hidden="true">···</span>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumb">Inicio <span>/</span> <strong id="breadcrumb-current">Explorar</strong></div>
+          <div class="topbar-actions">
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input id="search-input" type="search" placeholder="Busca una receta..." autocomplete="off" aria-label="Buscar recetas">
+              <kbd>Ctrl K</kbd>
+            </label>
+            <button id="add-recipe" class="primary-button"><span aria-hidden="true">＋</span> Nueva receta</button>
+          </div>
+        </header>
+
+        <section class="welcome">
+          <div>
+            <p class="eyebrow"><span class="sun-icon">✳</span> BUENO VERTE POR AQUÍ</p>
+            <h1 id="page-title">¿Qué cocinamos <em>hoy?</em></h1>
+            <p class="welcome-copy">Ideas ricas, ingredientes simples y momentos para compartir.</p>
+          </div>
+          <div class="date-chip"><span aria-hidden="true">☼</span> Hecho con cariño, en casa</div>
+        </section>
+
+        <section class="featured-section" aria-label="Receta destacada">
+          <div class="featured-copy">
+            <span class="featured-tag"><span>✦</span> RECETA DE LA SEMANA</span>
+            <h2 id="featured-title">Sabores que<br>se sienten como hogar</h2>
+            <p id="featured-description">Descubre recetas caseras para disfrutar cada momento alrededor de la mesa.</p>
+            <button id="featured-button" class="light-button">Ver receta <span aria-hidden="true">↗</span></button>
+          </div>
+          <div class="featured-image" role="img" aria-label="Una mesa con comida casera">
+            <div class="featured-note"><span>♡</span><div><strong>Hecho en casa</strong><small>Siempre sabe mejor</small></div></div>
+          </div>
+          <div class="featured-stamp" aria-hidden="true">rico<br><span>&</span><br>simple</div>
+        </section>
+
+        <section class="recipe-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" id="list-eyebrow">PARA INSPIRARTE</p>
+              <h2 id="list-title">Recetas para descubrir <span class="heading-sparkle">✳</span></h2>
+            </div>
+            <label class="sort-control">Ordenar por
+              <select id="sort-select" aria-label="Ordenar recetas">
+                <option value="recommended">Recomendadas</option>
+                <option value="quick">Más rápidas</option>
+                <option value="name">Nombre A–Z</option>
+              </select>
+            </label>
+          </div>
+          <div class="category-pills" aria-label="Filtrar por categoría">
+            <button class="pill active" data-category="Todas">Todas</button>
+            <button class="pill" data-category="Plato principal">Platos principales</button>
+            <button class="pill" data-category="Sopa">Sopas</button>
+            <button class="pill" data-category="Postre">Postres</button>
+          </div>
+          <div id="recipe-grid" class="recipe-grid" aria-live="polite"></div>
+          <div id="empty-state" class="empty-state" hidden>
+            <span>☕</span>
+            <h3>Aún no hay recetas por aquí</h3>
+            <p>Prueba con otra búsqueda o agrega una receta a tu colección.</p>
+            <button class="primary-button" data-open-form>Crear receta</button>
+          </div>
+        </section>
+        <footer class="page-footer">Hecho con <span>♥</span> y un poquito de harina.</footer>
+      </main>
+
+      <aside id="recipe-panel" class="detail-panel" aria-label="Detalle de la receta seleccionada">
+        <div class="detail-topline"><span class="eyebrow">TU PRÓXIMA RECETA</span><button id="close-detail" class="icon-button close-detail" aria-label="Cerrar detalle">×</button></div>
+        <div id="detail-content" class="detail-content">
+          <div class="detail-placeholder"><span>🍲</span><h2>Elige algo rico</h2><p>Selecciona una receta para ver sus ingredientes y preparación.</p></div>
+        </div>
+      </aside>
+    </div>
+
+    <dialog id="recipe-dialog" class="recipe-dialog">
+      <form id="recipe-form" method="dialog" class="recipe-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">ALGO RICO ESTÁ POR VENIR</p><h2 id="form-title">Nueva receta</h2></div>
+          <button type="button" id="close-dialog" class="icon-button" aria-label="Cerrar">×</button>
+        </div>
+        <label>Nombre de la receta<input name="nombre" required maxlength="100" placeholder="Ej. Pastel de choclo"></label>
+        <label>Descripción<textarea name="descripcion" rows="2" maxlength="240" placeholder="Cuéntanos por qué te gusta"></textarea></label>
+        <div class="form-row">
+          <label>Tiempo (min)<input name="tiempo_preparacion" type="number" min="1" required value="30"></label>
+          <label>Porciones<input name="porciones" type="number" min="1" value="4"></label>
+          <label>Dificultad<select name="dificultad"><option>Fácil</option><option>Media</option><option>Difícil</option></select></label>
+        </div>
+        <label>Ingredientes <span class="field-hint">(uno por línea)</span><textarea name="ingredientes" rows="4" placeholder="2 tazas de harina&#10;1 pizca de sal"></textarea></label>
+        <label>Preparación <span class="field-hint">(un paso por línea)</span><textarea name="instrucciones" rows="4" placeholder="Mezcla los ingredientes..."></textarea></label>
+        <p id="form-error" class="form-error" role="alert" hidden></p>
+        <div class="dialog-actions"><button type="button" id="cancel-dialog" class="secondary-button">Cancelar</button><button type="submit" class="primary-button">Guardar receta <span aria-hidden="true">↗</span></button></div>
+      </form>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

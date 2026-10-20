@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import sqlite3
+import os
 from decimal import Decimal
-from pathlib import Path
+
+import pymysql
+from pymysql.cursors import DictCursor
 
 from datos.Recetas import RECETAS_CHILENAS
 from datos.models import (
@@ -14,13 +16,45 @@ from datos.models import (
 )
 
 
+class _QueryResult:
+    def __init__(self, cursor) -> None:
+        self.lastrowid = cursor.lastrowid
+        self._rows = cursor.fetchall() if cursor.description else []
+        self._position = 0
+        cursor.close()
+
+    def fetchone(self):
+        if self._position >= len(self._rows):
+            return None
+        row = self._rows[self._position]
+        self._position += 1
+        return row
+
+    def __iter__(self):
+        while (row := self.fetchone()) is not None:
+            yield row
+
+
+class _MariaDBConnection:
+    def __init__(self, connection) -> None:
+        self._connection = connection
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self._connection.close()
+
+    def execute(self, statement: str, parameters: tuple = ()) -> _QueryResult:
+        cursor = self._connection.cursor()
+        cursor.execute(statement.replace("?", "%s"), parameters)
+        return _QueryResult(cursor)
+
+
 class RepositorioRecetas:
-    """Repositorio con persistencia en SQLite para que las recetas queden guardadas."""
+    """Repositorio con persistencia en MariaDB para que las recetas queden guardadas."""
 
     def __init__(self) -> None:
-        self.db_path = Path(__file__).resolve().parents[1] / "database" / "test.bd"
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
         self.usuarios: dict[int, Usuario] = {}
         self.categorias: dict[int, Categoria] = {}
         self.ingredientes: dict[int, Ingrediente] = {}
@@ -36,72 +70,41 @@ class RepositorioRecetas:
         if not self.recetas:
             self._cargar_datos_demo()
 
-    def _conexion(self) -> sqlite3.Connection:
-        conexion = sqlite3.connect(self.db_path)
-        conexion.row_factory = sqlite3.Row
-        return conexion
+    def _conexion(self) -> _MariaDBConnection:
+        conexion = pymysql.connect(
+            host=os.getenv("RECETAS_DB_HOST", "127.0.0.1"),
+            port=int(os.getenv("RECETAS_DB_PORT", "3307")),
+            user=os.getenv("RECETAS_DB_USER", "root"),
+            password=os.getenv("RECETAS_DB_PASSWORD", ""),
+            database=os.getenv("RECETAS_DB_NAME", "recetas"),
+            charset="utf8mb4",
+            cursorclass=DictCursor,
+            autocommit=True,
+            connect_timeout=5,
+        )
+        return _MariaDBConnection(conexion)
 
     def _inicializar_bd(self) -> None:
-        if self.db_path.exists():
-            try:
-                with sqlite3.connect(self.db_path) as conexion:
-                    conexion.execute("SELECT 1")
-            except sqlite3.DatabaseError:
-                self.db_path.write_bytes(b"")
-
         with self._conexion() as conexion:
-            conexion.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS Usuarios (
-                    id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
-                    email TEXT NOT NULL UNIQUE
-                );
-
-                CREATE TABLE IF NOT EXISTS Categorias (
-                    id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL UNIQUE,
-                    descripcion TEXT NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS Recetas (
-                    id_receta INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
-                    descripcion TEXT NOT NULL,
-                    tiempo_preparacion INTEGER NOT NULL,
-                    dificultad TEXT NOT NULL,
-                    instrucciones TEXT NOT NULL,
-                    porciones INTEGER NOT NULL,
-                    imagen_url TEXT,
-                    id_usuario INTEGER NOT NULL,
-                    FOREIGN KEY(id_usuario) REFERENCES Usuarios(id_usuario)
-                );
-
-                CREATE TABLE IF NOT EXISTS Ingredientes (
-                    id_ingrediente INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL UNIQUE,
-                    categoria_ingrediente TEXT NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS DetalleIngrediente (
-                    id_receta INTEGER NOT NULL,
-                    id_ingrediente INTEGER NOT NULL,
-                    cantidad TEXT NOT NULL,
-                    unidad_medida TEXT NOT NULL,
-                    PRIMARY KEY (id_receta, id_ingrediente),
-                    FOREIGN KEY(id_receta) REFERENCES Recetas(id_receta),
-                    FOREIGN KEY(id_ingrediente) REFERENCES Ingredientes(id_ingrediente)
-                );
-
-                CREATE TABLE IF NOT EXISTS RecetasCategorias (
-                    id_receta INTEGER NOT NULL,
-                    id_categoria INTEGER NOT NULL,
-                    PRIMARY KEY (id_receta, id_categoria),
-                    FOREIGN KEY(id_receta) REFERENCES Recetas(id_receta),
-                    FOREIGN KEY(id_categoria) REFERENCES Categorias(id_categoria)
-                );
-                """
-            )
+            tablas_requeridas = {
+                "usuarios",
+                "categorias",
+                "recetas",
+                "ingredientes",
+                "detalleingrediente",
+                "recetascategorias",
+            }
+            tablas_disponibles = {
+                str(next(iter(fila.values()))).lower()
+                for fila in conexion.execute("SHOW TABLES")
+            }
+            faltantes = tablas_requeridas - tablas_disponibles
+            if faltantes:
+                nombres = ", ".join(sorted(faltantes))
+                raise RuntimeError(
+                    f"Faltan tablas en la base '{os.getenv('RECETAS_DB_NAME', 'recetas')}': {nombres}. "
+                    "Importa database/recetas.sql en phpMyAdmin."
+                )
 
     def _cargar_desde_bd(self) -> None:
         self.usuarios.clear()
@@ -257,7 +260,7 @@ class RepositorioRecetas:
                     categoria.id_categoria = int(fila["id_categoria"])
                 self.categorias[categoria.id_categoria] = categoria
                 conexion.execute(
-                    "INSERT OR IGNORE INTO RecetasCategorias (id_receta, id_categoria) VALUES (?, ?)",
+                    "INSERT IGNORE INTO RecetasCategorias (id_receta, id_categoria) VALUES (?, ?)",
                     (receta.id_receta, categoria.id_categoria),
                 )
 
@@ -272,7 +275,7 @@ class RepositorioRecetas:
         else:
             with self._conexion() as conexion:
                 conexion.execute(
-                    "INSERT OR REPLACE INTO Usuarios (id_usuario, nombre, email) VALUES (?, ?, ?)",
+                    "REPLACE INTO Usuarios (id_usuario, nombre, email) VALUES (?, ?, ?)",
                     (usuario.id_usuario, usuario.nombre, usuario.email),
                 )
         self.usuarios[usuario.id_usuario] = usuario
@@ -296,7 +299,7 @@ class RepositorioRecetas:
         else:
             with self._conexion() as conexion:
                 conexion.execute(
-                    "INSERT OR REPLACE INTO Categorias (id_categoria, nombre, descripcion) VALUES (?, ?, ?)",
+                    "REPLACE INTO Categorias (id_categoria, nombre, descripcion) VALUES (?, ?, ?)",
                     (categoria.id_categoria, categoria.nombre, categoria.descripcion),
                 )
         self.categorias[categoria.id_categoria] = categoria
@@ -334,7 +337,7 @@ class RepositorioRecetas:
         else:
             with self._conexion() as conexion:
                 conexion.execute(
-                    "INSERT OR REPLACE INTO Ingredientes (id_ingrediente, nombre, categoria_ingrediente) VALUES (?, ?, ?)",
+                    "REPLACE INTO Ingredientes (id_ingrediente, nombre, categoria_ingrediente) VALUES (?, ?, ?)",
                     (ingrediente.id_ingrediente, ingrediente.nombre.strip(), ingrediente.categoria_ingrediente),
                 )
         self.ingredientes[ingrediente.id_ingrediente] = ingrediente
@@ -476,7 +479,7 @@ class RepositorioRecetas:
         receta.ingredientes.append(detalle)
         with self._conexion() as conexion:
             conexion.execute(
-                "INSERT OR REPLACE INTO DetalleIngrediente (id_receta, id_ingrediente, cantidad, unidad_medida) VALUES (?, ?, ?, ?)",
+                "REPLACE INTO DetalleIngrediente (id_receta, id_ingrediente, cantidad, unidad_medida) VALUES (?, ?, ?, ?)",
                 (id_receta, ingrediente_guardado.id_ingrediente, str(detalle.cantidad), unidad_medida),
             )
         return detalle

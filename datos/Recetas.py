@@ -1,5 +1,4 @@
 from __future__ import annotations
-from prettytable import PrettyTable
 
 
 RECETAS_CHILENAS = [

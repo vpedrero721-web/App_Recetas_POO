@@ -6,7 +6,6 @@
     "dialect": "MySQL",
     "database": "recetas",
     "username": "root",
-    "password": "val2006_",
     "connectionTimeout": 60000,
     "ssl": false
   }

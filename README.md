@@ -25,28 +25,24 @@ ejecuta nuevamente.
 
 ## Conexión a la base de datos
 
-La aplicación conserva el esquema de `recetas` y permite configurar la
-conexión con variables de entorno. Los valores predeterminados son
-`127.0.0.1:3307`, usuario `root`, contraseña vacía y base `recetas`.
-Si tu usuario de MySQL tiene contraseña (como indica el error de acceso 1045),
-debes establecer `RECETAS_DB_PASSWORD` con la contraseña local antes de iniciar
-la aplicación; no la compartas ni la guardes en el repositorio.
+La aplicación lee las variables de conexión desde un archivo `.env` local o
+desde el entorno del sistema. Copia `.env.example` como `.env` y completa los
+valores de tu equipo. El archivo `.env` está excluido de Git: no subas
+contraseñas ni credenciales a GitHub.
 
-En PowerShell, configura solo los valores que sean distintos a esos
-predeterminados antes de iniciar la aplicación:
+En PowerShell:
 
 ```powershell
-$env:RECETAS_DB_HOST = "127.0.0.1"
-$env:RECETAS_DB_PORT = "3307"
-$env:RECETAS_DB_USER = "tu_usuario"
-$env:RECETAS_DB_PASSWORD = "tu_contraseña"
-$env:RECETAS_DB_NAME = "recetas"
+Copy-Item .env.example .env
+notepad .env
 python main.py
 ```
 
-No guardes contraseñas reales en el código ni en archivos versionados. Las
-clases ORM que representan las tablas están en `datos/orm_models.py`; el
-repositorio usa Peewee para leer y guardar recetas, ingredientes y categorías.
+Si prefieres, configura las variables `RECETAS_DB_HOST`, `RECETAS_DB_PORT`,
+`RECETAS_DB_USER`, `RECETAS_DB_PASSWORD` y `RECETAS_DB_NAME` directamente en
+PowerShell. Las clases ORM que representan las tablas están en
+`datos/orm_models.py`; el repositorio usa Peewee para leer y guardar recetas,
+ingredientes y categorías.
 
 ## Generar modelos con pwiz
 

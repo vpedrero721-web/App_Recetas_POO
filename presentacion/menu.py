@@ -106,13 +106,25 @@ class MenuRecetas:
         print("\nNUEVA RECETA")
         nombre = self.leer_entrada("Nombre: ")
         descripcion = self.leer_entrada("Descripción: ")
-        tiempo = int(self.leer_entrada("Tiempo de preparación (min): "))
+        tiempo_texto = self.leer_entrada("Tiempo de preparación (min): ")
         dificultad = self.leer_entrada("Dificultad (Fácil/Media/Difícil): ")
         instrucciones = self.leer_entrada("Instrucciones: ")
-        porciones = int(self.leer_entrada("Porciones: "))
+        porciones_texto = self.leer_entrada("Porciones: ")
 
-        receta = self.servicio.crear_receta(nombre, descripcion, tiempo, dificultad, instrucciones, porciones)
-        print(f"Receta creada: {receta.nombre}")
+        try:
+            tiempo = int(tiempo_texto)
+            porciones = int(porciones_texto)
+        except ValueError:
+            print("El tiempo y las porciones deben ser números enteros.")
+            return
+
+        try:
+            receta = self.servicio.crear_receta(
+                nombre, descripcion, tiempo, dificultad, instrucciones, porciones
+            )
+            print(f"Receta creada: {receta.nombre}")
+        except ValueError as exc:
+            print(f"Error: {exc}")
 
     def editar_receta(self) -> None:
         try:
@@ -153,7 +165,14 @@ class MenuRecetas:
             print(f"Error: {exc}")
 
     def eliminar_receta(self) -> None:
-        id_receta = int(self.leer_entrada("Ingrese el id de la receta a eliminar: "))
+        try:
+            id_receta = int(
+                self.leer_entrada("Ingrese el id de la receta a eliminar: ")
+            )
+        except ValueError:
+            print("Debe ingresar un número válido.")
+            return
+
         eliminado = self.servicio.eliminar_receta(id_receta)
         if eliminado:
             print("Receta eliminada.")

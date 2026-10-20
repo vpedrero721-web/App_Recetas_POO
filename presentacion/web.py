@@ -5,7 +5,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from negocios.servicio_recetas import ServicioRecetas
+from negocio.servicio_recetas import ServicioRecetas
 
 
 DIRECTORIO_ESTATICO = Path(__file__).with_name("web")

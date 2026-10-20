@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from negocios.servicio_recetas import ServicioRecetas
+from negocio.servicio_recetas import ServicioRecetas
 
 
 class MenuRecetas:

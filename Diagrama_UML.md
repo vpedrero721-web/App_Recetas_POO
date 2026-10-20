@@ -76,3 +76,5 @@ classDiagram
     ServicioRecetas --> RepositorioRecetas : aplica reglas y persiste
     RepositorioRecetas --> Receta : gestiona
 ```
+![DIAGRAMA_DE_CLASES_ACTUALIADO](diagrama_uml_clases.png)
+
